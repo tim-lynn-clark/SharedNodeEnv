@@ -10,7 +10,10 @@
   "scripts": {
     "prepare": "git config core.hooksPath .githooks || true",
     "scan": "gitleaks git --no-banner --redact -c .gitleaks.toml .",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "lint": "eslint .",
+    "test": "node --test",
+    "test:coverage": "node --test --experimental-test-coverage --test-coverage-lines=90 --test-coverage-branches=85",
+    "test:package": "RUN_PACKAGE_TESTS=1 node --test test/package.test.js"
   },
   "repository": {
     "type": "git",
@@ -30,15 +33,11 @@
     "url": "https://github.com/schleichermann/SharedNodeEnv/issues"
   },
   "homepage": "https://github.com/schleichermann/SharedNodeEnv",
-  "devDependencies": {
-    "chai": "^4.5.0",
-    "debug": "^4.4.3",
-    "grunt": "^1.6.3",
-    "grunt-contrib-jshint": "^3.2.0",
-    "grunt-simple-mocha": "^0.4.1",
-    "mocha": "^10.8.2"
-  },
   "dependencies": {
     "underscore": "^1.8.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "eslint": "^9.39.5"
   }
 }
