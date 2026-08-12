@@ -52,6 +52,6 @@
   "homepage": "https://github.com/tim-lynn-clark/SharedNodeEnv#readme",
   "devDependencies": {
     "@eslint/js": "^9.39.5",
-    "eslint": "^9.39.5"
+    "eslint": "^10.8.1"
   }
 }
