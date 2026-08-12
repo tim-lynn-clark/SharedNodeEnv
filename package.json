@@ -29,7 +29,7 @@
     "scan": "gitleaks git --no-banner --redact -c .gitleaks.toml .",
     "lint": "eslint .",
     "test": "node --test",
-    "test:coverage": "node --test --experimental-test-coverage --test-coverage-lines=90 --test-coverage-branches=85",
+    "test:coverage": "node --test --experimental-test-coverage --test-coverage-lines=100 --test-coverage-branches=100 --test-coverage-functions=100",
     "test:package": "RUN_PACKAGE_TESTS=1 node --test test/package.test.js"
   },
   "repository": {
