@@ -1,0 +1,26 @@
+# gitleaks configuration for shared-node-env
+#
+# The repository scans clean as of 2026-08-12 (14 commits, full history), so
+# there is no baseline file and no grandfathered findings. Keep it that way:
+# add an entry below only for a value that is provably not a credential, and
+# say why in a comment.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Documented placeholders, not credentials"
+
+# The README and src/bin/sharedNodeEnv.js illustrate the .env file format with
+# a fake SYSTEM_TOKEN. Nothing flags it under gitleaks 8.30.1, but detection
+# rules tighten between releases, and a red build on an unrelated pull request
+# years from now is a worse outcome than a documented exception here.
+regexes = [
+  '''qwe789asd''',
+]
+
+# Deliberately NOT allowlisted:
+#   package-lock.json  - can legitimately carry //registry/:_authToken entries
+#   docs/              - a design doc is as capable of holding a pasted key as
+#                        any source file
+# Broad path exclusions are how scanners quietly stop finding things.

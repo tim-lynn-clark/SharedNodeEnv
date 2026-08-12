@@ -113,3 +113,43 @@ If either the shared or the local environments file being passed is not named co
 If either the shared or the local environments file is empty an error will be thrown.
 
 If either the shared or the local environments file is poorly formatted an error will be thrown.
+
+## Secret Scanning
+
+This repository is scanned for committed credentials by [gitleaks](https://github.com/gitleaks/gitleaks)
+at two points.
+
+**Locally, before each commit.** A `pre-commit` hook scans staged changes and
+refuses the commit if it finds a secret. The hook lives in `.githooks/` and is
+wired up automatically by the `prepare` script when you run `npm install`. To
+enable it by hand:
+
+    git config core.hooksPath .githooks
+
+The hook needs gitleaks on your PATH (`brew install gitleaks`). If it is not
+installed the hook prints a notice and lets the commit through, so a missing
+tool never blocks work — CI still scans the push.
+
+**In CI, on every push and pull request.** `.github/workflows/secret-scan.yml`
+scans the full history, not just the diff, and fails the build on any finding.
+This is the enforcement point; the hook is only an early warning.
+
+#### Handling a finding
+
+If it is a real credential, remove it and **rotate it**. Rotate even if it was
+never pushed — it already exists in your shell history and on disk.
+
+If it is a false positive, add it to the `regexes` list in `.gitleaks.toml`
+with a comment explaining why it is not a credential. Prefer a narrow value
+match over excluding a whole path; broad path exclusions are how scanners
+quietly stop finding things.
+
+To bypass the local hook deliberately:
+
+    git commit --no-verify
+
+CI cannot be bypassed.
+
+#### Running a scan by hand
+
+    npm run scan
