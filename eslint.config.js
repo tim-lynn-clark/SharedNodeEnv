@@ -42,12 +42,6 @@ module.exports = [
     }
   },
   {
-    ignores: [
-      'node_modules/',
-      'coverage/',
-      'docs/',
-      // Removed in Task 7, when run() is composed from the new modules.
-      'src/bin/sharedNodeEnv.js'
-    ]
+    ignores: ['node_modules/', 'coverage/', 'docs/']
   }
 ];

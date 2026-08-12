@@ -33,9 +33,6 @@
     "url": "https://github.com/schleichermann/SharedNodeEnv/issues"
   },
   "homepage": "https://github.com/schleichermann/SharedNodeEnv",
-  "dependencies": {
-    "underscore": "^1.8.3"
-  },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
     "eslint": "^9.39.5"
