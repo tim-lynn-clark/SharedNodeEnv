@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 26 is included because it is the maintainer's local runtime; leaving
+        # the most-used version untested is a real gap. 20 is the engines floor.
+        node: ['20', '22', '24', '26']
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm ci
+      - run: npm run lint
+      # CI=true is set by GitHub Actions, so the packaging tests run here.
+      - run: npm test
+
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          # The --test-coverage-* threshold flags require Node 22.8+, so
+          # coverage runs on one modern version rather than the full matrix.
+          node-version: '24'
+      - run: npm ci
+      - run: npm run test:coverage

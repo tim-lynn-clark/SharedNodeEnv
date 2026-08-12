@@ -1,6 +1,17 @@
-/**
- * Created by Tim on 4/8/15.
- */
+'use strict';
 
-// Convenience file to require the SDK from the root of the repository
-module.exports = require('./src/bin/sharedNodeEnv');
+const { resolveConfig } = require('./src/resolve-config');
+const { loadEnv } = require('./src/load');
+const { applyEnv } = require('./src/apply');
+const { SharedNodeEnvError } = require('./src/errors');
+
+function run(config) {
+  const resolved = resolveConfig(config);
+  const { vars, sources, missing } = loadEnv(resolved);
+  const { applied, skipped } = applyEnv(vars, { override: resolved.override });
+  return { applied, skipped, sources, missing };
+}
+
+run.SharedNodeEnvError = SharedNodeEnvError;
+
+module.exports = run;

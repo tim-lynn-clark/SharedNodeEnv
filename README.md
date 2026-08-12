@@ -1,118 +1,184 @@
 # SharedNodeEnv
-A Node.js library designed to handle the creation of shared Environment Variables within multiple node applications 
-running on the same server and sharing identical environmental variables that must be updated across all applications 
-when changed. 
 
-The library also allows for a application specific local environments variable file to be created that holds
-environment variables that are specific to that application. If the local environments variable file contains any
-entries that are identical to those in the shared file, the local variables will take precedence, effectively overriding
-the shared variable with the local value.
- 
+A Node.js library for sharing environment variables across multiple Node
+applications running on the same server — variables that must stay identical
+everywhere and be updated in one place when they change.
+
+Each application can also keep its own local environment file. Where the local
+file and the shared file define the same key, the local value wins.
+
+**Zero runtime dependencies.** Requires Node.js 20 or later.
+
 ## Installation
 
-    npm install shared-node-env --save
-    
+    npm install shared-node-env
+
 ## Use
-Once installed, configured, and the environment files have been created the library is extremely easy to use.
-Any environment variable defined in the shared or local .env files will be available as a property on the 'process.env'
-object within your Node.js application. 
 
-    var path = require('path');
-    require('SharedNodeEnv')({
-        sharedEnv: path.resolve(process.cwd(), '.env-shared'),
-        localEnv: path.resolve(process.cwd(), '.env-local'),
-        local: false
-    });
-    console.log('---------');
-    console.log('Local Env');
-    console.log('---------');
-    console.log(process.env.SERVER_ID);
-    
-    var express = require('express');
-    var favicon = require('serve-favicon');
-    var logger = require('morgan');
-    var cookieParser = require('cookie-parser');
-    var bodyParser = require('body-parser');
-    
-##### IMPORTANT:
-Make sure that the library is loaded, configured, and executed prior to anything else running in your Node.js application. 
-This is to make sure that the global environment variables from your shared and local .env files are loaded into 
-the 'process.env' object before they are used. 
+Load and run the library before anything else in your application, so the
+variables are on `process.env` before any other module reads them.
 
-Above is an example extracted from an Express.js web application. As you can see the library is loaded at the top of
-the server.js file prior to the loading of the Express.js application or any other libraries that might depend on your
-environment variables (PORT for example, for the web server).
-    
-    
+```js
+const path = require('path');
+
+const result = require('shared-node-env')({
+  sharedEnv: path.resolve('/etc/myapp/.env-shared'),
+  localEnv: path.resolve(process.cwd(), '.env-local'),
+  local: true,
+  override: false
+});
+
+console.log(result.applied);  // keys that were set
+console.log(result.skipped);  // keys already present in process.env
+console.log(result.sources);  // files that were read
+console.log(result.missing);  // defaulted files that were not found
+
+const express = require('express');
+const app = express();
+app.listen(process.env.PORT);
+```
+
+### ESM
+
+In ESM, **every `import` statement is hoisted and evaluated before any function
+call in the module body**. This breaks the library's entire purpose if you call
+it directly:
+
+```js
+// WRONG — express is hoisted above the run() call and loads without your vars.
+import run from 'shared-node-env';
+run({ sharedEnv: '/etc/myapp/.env-shared' });
+import express from 'express';
+```
+
+Use the side-effect entry point instead. It runs at import time, in order:
+
+```js
+// Correct.
+import 'shared-node-env/config';
+import express from 'express';
+```
+
+Configure it with environment variables:
+
+| Variable | Maps to |
+|---|---|
+| `SHARED_NODE_ENV_SHARED` | `sharedEnv` |
+| `SHARED_NODE_ENV_LOCAL` | `localEnv` |
+| `SHARED_NODE_ENV_OVERRIDE` | `override` |
+
+`SHARED_NODE_ENV_OVERRIDE` is enabled only by the exact case-insensitive string
+`true`. Every other value — including `1` and `yes` — is false. One unambiguous
+spelling avoids the class of bug where `"0"` or `"false"` reads as truthy.
+
+The same entry point works in CommonJS:
+
+```js
+require('shared-node-env/config');
+```
+
 ## Configuration
-The library can accept an optional configuration object that defines two optional configuration values.
 
-#### Format
+All keys are optional.
 
-    {
-        sharedEnv: 'path-to-shared-env-file/.env-shared', // default = undefined
-        localEnv: 'path-to-local-env-file/.env-local',    // default = '.env-local'
-        local: true                                       // default = true
-    }
-    
-##### sharedEnv
-Specifies the absolute path to the shared environment variables file.
-The file must be named .env-shared and can be located anywhere on the server's file system so long as all Node.js applications
-that utilize the shared environment variables can access it.
-    
-##### localEnv  
-Specifies the absolute path to the local environment variables file. This file is meant to be application specific and 
-should only be loaded by a single application. This value ONLY needs to be passed in if the local file is not located in the 
-default location at the root of the Node.js application. No matter where the file is located it must be named .env-local.
+| Key | Type | Default | Meaning |
+|---|---|---|---|
+| `sharedEnv` | string | none | Path to the shared file. Any path; no filename restriction. If named and missing, throws. |
+| `localEnv` | string | `./.env-local` | Path to the local file. If named explicitly and missing, throws. If defaulted and missing, reported in `missing`. |
+| `local` | boolean | `true` | Set `false` to skip the local file entirely. Beats an explicit `localEnv`. |
+| `override` | boolean | `false` | Whether file values replace variables already in `process.env`. |
 
-##### local
-Because the library assumes the existence of a local environments file, the ability to turn off local is permitted through
-this configuration value. This is extremely useful when a shared environments file exists but a local does not for a 
-specific application. When set to false the library will not process a local environments file even if one exists.
+Relative paths resolve against the current working directory.
 
-##### Notes:
-Being that the two environment files will be opened and read by this library, it is important that the user account under
-which the Node.js application is running has sufficient permissions to open and read them.
+### Return value
 
-## Environment File Format (.env-shared, .env-local)
-The individual environment files are simply comprised of a single array of key/value objects, in JSON format, 
-representing each environment variable you wish to have added to the process.env object of your application. 
-This of course allows you to add as many variables as needed to the file.
-    
-    [
-        {
-            "key": "SERVER_ID",
-            "value": "123456"
-        },
-        {
-            "key": "SYSTEM_TOKEN",
-            "value": "qwe789asd"
-        }
-    ]
-    
-The library simply iterates over the array and processes each key/value pair adding it to the applications environment variable. 
+`run()` returns an object:
 
-    process.env[item.key] = item.value;
+```js
+{
+  applied: ['SERVER_ID'],       // keys written to process.env
+  skipped: ['PORT'],            // keys left alone because they already existed
+  sources: ['/etc/.env-shared'] // files actually read
+  missing: []                   // defaulted files that were absent
+}
+```
 
-## Logic
-The library first checks to see if a config object has been provided, if not the library assumes it is being used to 
-manage a local environments file and will attempt to load .env-local from the root of the Node.js application.
+### Precedence
 
-If a configuration file is provided the library will check for each of the optional config keys and process each one in 
-order starting with the shared env file and then the local. It is for this reason the local will overwrite values 
-provided by the shared env file.
+1. A value already in `process.env` wins, unless `override: true`.
+2. Otherwise the local file wins over the shared file.
 
-If local is disabled only the shared environment file will be processed.
-    
-## Potential Errors
-If neither a local file nor a shared file is found the library will throw an error. This is due to the fact that the 
-library is being executed within your Node.js application and expects to perform the task it was created for.
+The two files are merged into a single set *before* anything is compared
+against `process.env`, so a shared value can never block its own local
+override.
 
-If either the shared or the local environments file being passed is not named correctly an error will be thrown.
+## Environment File Format
 
-If either the shared or the local environments file is empty an error will be thrown.
+A JSON array of key/value objects:
 
-If either the shared or the local environments file is poorly formatted an error will be thrown.
+```json
+[
+  {
+    "key": "SERVER_ID",
+    "value": "123456"
+  },
+  {
+    "key": "SYSTEM_TOKEN",
+    "value": "qwe789asd"
+  }
+]
+```
+
+`value` may be a string, number, or boolean; it is converted to a string, since
+that is all `process.env` can hold. Duplicate keys within one file resolve to
+the last occurrence.
+
+The account running the application needs read permission on both files.
+
+## Errors
+
+Every failure throws a `SharedNodeEnvError` carrying a stable `code`, the
+offending `path`, and — for filesystem failures — the original error as
+`cause`. Branch on `code`, never on message text:
+
+```js
+const run = require('shared-node-env');
+
+try {
+  run({ sharedEnv: '/etc/myapp/.env-shared' });
+} catch (err) {
+  if (err instanceof run.SharedNodeEnvError && err.code === 'ERR_FILE_MISSING') {
+    console.error('No shared env file at', err.path);
+    process.exit(1);
+  }
+  throw err;
+}
+```
+
+| Code | Raised when |
+|---|---|
+| `ERR_CONFIG_INVALID` | A config key has the wrong type, or a path is empty |
+| `ERR_FILE_MISSING` | An explicitly named file does not exist |
+| `ERR_FILE_EMPTY` | A file is empty or contains only whitespace |
+| `ERR_FILE_MALFORMED` | A file is not valid JSON, or is not a JSON array |
+| `ERR_ENTRY_INVALID` | An entry is missing `key`, or `value` is not a string, number, or boolean |
+| `ERR_FILE_UNREADABLE` | A file exists but could not be read (permissions, I/O) |
+
+## Migrating from 1.x
+
+- **`override: true` restores 1.x behavior.** By default, a value already in
+  `process.env` now wins over the file. This is the one change most likely to
+  affect a running deployment: a variable injected by your host or orchestrator
+  is no longer silently replaced by a stale file value.
+- **Previously silent failures now throw.** In 1.x a JSON object instead of an
+  array injected nothing and reported success, and an entry missing `key`
+  created a variable literally named `"undefined"`.
+- **`local: false` is largely unnecessary.** A missing `.env-local` at the
+  default path is now reported in `missing` rather than being fatal.
+- **Filename restrictions are gone.** `sharedEnv` and `localEnv` accept any
+  path. 1.x required the paths to contain `.env-shared` / `.env-local`.
+- **`run()` returns a result object** instead of `undefined`.
+- **Node.js 20 or later is required.**
 
 ## Secret Scanning
 
@@ -150,6 +216,15 @@ To bypass the local hook deliberately:
 
 CI cannot be bypassed.
 
-#### Running a scan by hand
+## Development
 
-    npm run scan
+    npm install          # also wires up the pre-commit hook
+    npm run lint
+    npm test             # unit tests; packaging tests are skipped
+    npm run test:package # slow: packs and installs the real tarball
+    npm run test:coverage
+    npm run scan         # manual gitleaks run
+
+## License
+
+GPL-2.0

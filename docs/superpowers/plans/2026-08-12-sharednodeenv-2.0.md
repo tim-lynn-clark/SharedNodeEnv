@@ -37,7 +37,7 @@ Deletes the source of every remaining vulnerability. Nothing else can be tested 
 
 **Interfaces:**
 - Consumes: nothing.
-- Produces: working `npm test` (runs `node --test test/`) and `npm run lint` commands that all later tasks depend on.
+- Produces: working `npm test` (runs `node --test`) and `npm run lint` commands that all later tasks depend on.
 
 - [ ] **Step 1: Remove grunt and its plugins, install ESLint**
 
@@ -113,8 +113,8 @@ every future clone:
   "prepare": "git config core.hooksPath .githooks || true",
   "scan": "gitleaks git --no-banner --redact -c .gitleaks.toml .",
   "lint": "eslint .",
-  "test": "node --test test/",
-  "test:coverage": "node --test --experimental-test-coverage --test-coverage-lines=90 --test-coverage-branches=85 test/",
+  "test": "node --test",
+  "test:coverage": "node --test --experimental-test-coverage --test-coverage-lines=90 --test-coverage-branches=85",
   "test:package": "RUN_PACKAGE_TESTS=1 node --test test/package.test.js"
 }
 ```
@@ -144,7 +144,11 @@ test('test runner is wired up', () => {
 Run: `npm run lint && npm test`
 Expected: lint reports no errors; test reports `pass 1  fail 0`.
 
-Note: `src/bin/sharedNodeEnv.js` still exists and still uses `var`. `prefer-const` will flag it. If lint fails on that file only, add it to the `ignores` array temporarily with the comment `// removed in Task 7` — Task 7 deletes the file and the ignore entry together.
+Note: `src/bin/sharedNodeEnv.js` still exists and still uses `var`. `prefer-const` will flag it. Add it to the `ignores` array with the comment `// Removed in Task 7` — Task 7 deletes the file and the ignore entry together.
+
+Note: `index.js` also fails `strict` because it has no `'use strict'` directive. Add the directive rather than ignoring the file; Task 7 rewrites it anyway and the one-line addition keeps the lint gate honest in the meantime.
+
+Note on the test invocation: use bare `node --test`, not `node --test test/`. Passing a directory works on Node 20 but on Node 24+ the runner resolves the positional argument as a module entry point and fails with `MODULE_NOT_FOUND`. Bare `node --test` uses default discovery and is portable across the whole support matrix.
 
 - [ ] **Step 6: Confirm the vulnerability count dropped**
 
