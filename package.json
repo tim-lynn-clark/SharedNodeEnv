@@ -1,12 +1,29 @@
 {
   "name": "shared-node-env",
-  "version": "1.0.4",
+  "version": "2.0.0",
   "description": "A Node.js library designed to handle the creation of shared Environment Variables within multiple node applications running on the same server and sharing identical environmental variables that must be updated across all applications when changed.",
   "main": "index.js",
+  "exports": {
+    ".": {
+      "import": "./index.mjs",
+      "require": "./index.js"
+    },
+    "./config": {
+      "import": "./config.mjs",
+      "require": "./config.js"
+    },
+    "./package.json": "./package.json"
+  },
   "files": [
     "index.js",
+    "index.mjs",
+    "config.js",
+    "config.mjs",
     "src/"
   ],
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "prepare": "git config core.hooksPath .githooks || true",
     "scan": "gitleaks git --no-banner --redact -c .gitleaks.toml .",
@@ -17,7 +34,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/schleichermann/SharedNodeEnv.git"
+    "url": "git+https://github.com/tim-lynn-clark/SharedNodeEnv.git"
   },
   "keywords": [
     "Node.js",
@@ -28,11 +45,11 @@
     "Variables"
   ],
   "author": "Tim Clark <graphicnetdesign@gmail.com> (http://violentatom.com)",
-  "license": "GNU GENERAL PUBLIC LICENSE",
+  "license": "GPL-2.0",
   "bugs": {
-    "url": "https://github.com/schleichermann/SharedNodeEnv/issues"
+    "url": "https://github.com/tim-lynn-clark/SharedNodeEnv/issues"
   },
-  "homepage": "https://github.com/schleichermann/SharedNodeEnv",
+  "homepage": "https://github.com/tim-lynn-clark/SharedNodeEnv#readme",
   "devDependencies": {
     "@eslint/js": "^9.39.5",
     "eslint": "^9.39.5"
