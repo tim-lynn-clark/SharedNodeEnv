@@ -103,16 +103,24 @@ module.exports = [
 
 - [ ] **Step 3: Add scripts to `package.json`**
 
-Replace the `scripts` block with:
+Replace the `scripts` block with the following. **`prepare` and `scan` already
+exist on this branch and must be preserved** — `prepare` wires up the gitleaks
+pre-commit hook, and dropping it silently disables local secret scanning for
+every future clone:
 
 ```json
 "scripts": {
+  "prepare": "git config core.hooksPath .githooks || true",
+  "scan": "gitleaks git --no-banner --redact -c .gitleaks.toml .",
   "lint": "eslint .",
   "test": "node --test test/",
   "test:coverage": "node --test --experimental-test-coverage --test-coverage-lines=90 --test-coverage-branches=85 test/",
   "test:package": "RUN_PACKAGE_TESTS=1 node --test test/package.test.js"
 }
 ```
+
+Verify afterwards: `npm pkg get scripts.prepare` must return the `core.hooksPath`
+command, not `{}`.
 
 Note: the `--test-coverage-lines` and `--test-coverage-branches` flags require Node 22.8+. Task 10 pins the coverage CI job to Node 24 for this reason. Plain `npm test` works on Node 20.
 
@@ -1677,6 +1685,15 @@ git commit -m "Added packaging tests that install the real tarball and exercise 
 - Create: `.github/workflows/ci.yml`
 - Create: `.github/dependabot.yml`
 - Modify: `package.json` (only if the coverage threshold is raised)
+
+> **Pre-existing, do not clobber:** `.github/workflows/secret-scan.yml`,
+> `.githooks/pre-commit`, and `.gitleaks.toml` were added on the `grunt-patch`
+> branch and are already merged by the time this task runs. Create `ci.yml` as a
+> **new** file alongside the secret-scan workflow; do not fold, rename, or
+> replace it. The `prepare` script in `package.json`
+> (`git config core.hooksPath .githooks`) must also survive — Task 1 rewrites the
+> `scripts` block, so confirm `prepare` and `scan` are still present after that
+> edit.
 
 **Interfaces:**
 - Consumes: the `lint`, `test`, and `test:coverage` scripts from Task 1.

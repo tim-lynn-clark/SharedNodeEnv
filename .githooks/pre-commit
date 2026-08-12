@@ -1,0 +1,36 @@
+#!/bin/sh
+#
+# Blocks a commit that would introduce a secret.
+#
+# Enabled by `git config core.hooksPath .githooks`, which the package.json
+# "prepare" script runs on npm install. To enable it by hand:
+#
+#     git config core.hooksPath .githooks
+#
+# This hook is a fast local warning, not the guarantee. CI re-scans the full
+# history on every push and pull request, and CI cannot be bypassed.
+
+set -e
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "pre-commit: gitleaks not installed - skipping local secret scan." >&2
+  echo "            Install it with 'brew install gitleaks' for early warnings." >&2
+  echo "            CI will still scan this push." >&2
+  exit 0
+fi
+
+# --staged scans the index only, so the hook stays fast on every commit.
+# --redact keeps a detected secret out of terminal scrollback.
+if ! gitleaks git --staged --no-banner --redact -c .gitleaks.toml .; then
+  echo >&2
+  echo "pre-commit: BLOCKED - staged changes appear to contain a secret." >&2
+  echo >&2
+  echo "  If it is a real credential: remove it and rotate it. Rotate even if" >&2
+  echo "  it was never pushed - it is in your shell history and filesystem." >&2
+  echo >&2
+  echo "  If it is a false positive: add it to .gitleaks.toml with a comment" >&2
+  echo "  explaining why it is not a credential." >&2
+  echo >&2
+  echo "  To bypass deliberately: git commit --no-verify" >&2
+  exit 1
+fi
