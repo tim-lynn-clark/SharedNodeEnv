@@ -31,3 +31,4 @@ node_modules
 
 # JetBrains IDE Metadata Folder + files
 .idea
+.devswarm-temp/
